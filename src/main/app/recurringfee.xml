@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+   <sfdc:config name="Salesforce__Basic_Authentication" username="hemanth.gadde@stericycle.com.sfdcdev1" password="Indiaindia_9" url="https://test.salesforce.com/services/Soap/u/37.0" doc:name="Salesforce: Basic Authentication" disableSessionInvalidation="true"/>
+    <http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="192.81.100.75" port="50705" basePath="V1" connectionIdleTimeout="1800000" doc:name="HTTP Request Configuration">
+        <tls:context>
+            <tls:trust-store insecure="true"/>
+        </tls:context>
+    </http:request-config>
+    <flow name="recfeeFlow">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="10" timeUnit="SECONDS"/>
+            <logger level="INFO" doc:name="Logger"/>
+        </poll>
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Container_Weight_Per_Stream_Per_Stop__c,Container_Weight_Per_Stream_Per_Year__c,Containers_Per_Waste_Stream_Per_Stop__c,Containers_Per_Waste_Stream_Per_Year__c,Contract_Status__c,Contract__c,CreatedById,CreatedDate,Customer_Account__c,EI_Fee__c,End_Date__c,Frequency_Type__c,Generator_Account__c,Id,IsRecurringFee__c,LastModifiedById,LastModifiedDate,LastReferencedDate,LastViewedDate,Last_Bill_Date__c,Monthly_Fee__c,Name,Next_Bill_Date__c,Number_of_Stops_Per_Year__c,OwnerId,Price__c,Product__c,Recurring_Fee__c,Send_to_SteriWorks__c,Setup_in_Steriworks__c,Start_Date__c,Steriworks_ID__c,Stops_per_Year__c,SystemModstamp,Tax_Category_Code__c,Term__c,Total_Containers__c,Total_Stops__c,Total_Weight__c,Verified__c,Waste_Program_Type__c FROM Subscription_Price__c WHERE (Send_to_SteriWorks__c = true AND id = 'aBg220000004CD8')" doc:name="Salesforce"/>
+        <set-variable variableName="csvOutput" value="null" doc:name="Variable -csvOutput"/>
+        <set-payload value="#[org.apache.commons.collections.IteratorUtils.toList(payload)]" doc:name="Set Payload"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+            <dw:set-variable variableName="orders"><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-variable>
+        </dw:transform-message>
+        <foreach doc:name="For Each">
+            <enricher target="#[flowVars.account]" doc:name="Message Enricher">
+                <flow-ref name="SubFlowAccount" doc:name="SubFlowAccount"/>
+            </enricher>
+            <enricher target="#[flowVars.product]" doc:name="Message Enricher">
+                <flow-ref name="recfeeProduct" doc:name="Flow Reference"/>
+            </enricher>
+            <choice doc:name="Choice">
+                <when expression="#[payload.Send_to_SteriWorks__c == true and payload.Setup_in_Steriworks__c == true]">
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+[ {
+	
+"contractId":payload.Contract__c,
+//"CustomerNumber": payload.Customer_Dynamics_AX_Number__c default '00106315',
+"CustomerNumber":'00106153',
+"ExternalSiteNumber": payload.Generator_Account__c,
+"EffectivePriceDate" :payload.Start_Date__c,
+ 
+  //its an ID  and for descrption use product description
+  "SvcCode": flowVars.product[0].Name,
+"BillAheadCycles" :payload.Term__c,
+   "WasteProgramType": payload.Waste_Program_Type__c default 123,
+//whats this........ 
+ "Description": flowVars.product[0].Description,
+ "TaxCategory" : payload.Tax_Category_Code__c,
+   
+   "Price" : payload.Price__c default 1,
+"TerminateDate" : payload.End_Date__c,
+ "EnergyAndInsurance": payload.EI_Fee__c default 1,
+ "StopsPerYear":payload.Stops_Per_Year__c,
+ "ContainersPerWasteStreamPerYear":payload.Containers_Per_Waste_Stream_Per_Year__c,
+ "ContainersPerWasteStreamPerStop":payload.Containers_Per_Waste_Stream_Per_Stop__c,
+ "WeightPerWasteStreamPerYear":payload.Container_Weight_Per_Stream_Per_Year__c,
+ "WeightPerWasteStreamPerStop":payload.Container_Weight_Per_Stream_Per_Stop__c,
+
+ "OverageContainersPrice":payload.Overage_Price_Per_Container__c,
+ "OverageWeightPrice":payload.Price_of_Overage_of_Weight__c,
+ "OverageStopPrice":payload.Overage_Price_Per_Stop__c
+	
+}]]]></dw:set-payload>
+                    </dw:transform-message>
+                    <logger message="Add Request to Steriworks :  #[payload]" level="INFO" doc:name="Logger"/>
+                    <http:request config-ref="HTTP_Request_Configuration" path="UpdateSiteProgramSchedules" method="POST" doc:name=" HTTP Steriworks Update">
+                        <http:request-builder>
+                            <http:header headerName="Content-Type" value="application/json"/>
+                            <http:header headerName="X-SDS-Culture" value="en-US"/>
+                            <http:header headerName="X-SDS-User" value="rlourenco"/>
+                            <http:header headerName="X-SDS-CompanyCode" value="910"/>
+                            <http:header headerName="Accept" value="application/json"/>
+                        </http:request-builder>
+                    </http:request>
+                </when>
+                <otherwise>
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+[ {
+	
+"contractId":payload.Contract__c,
+//"CustomerNumber": payload.Customer_Dynamics_AX_Number__c default '00106315',
+"CustomerNumber":'00106153',
+"ExternalSiteNumber": payload.Generator_Account__c,
+"EffectivePriceDate" :payload.Start_Date__c,
+ 
+  //its an ID  and for descrption use product description
+  "SvcCode": flowVars.product[0].Name,
+"BillAheadCycles" :payload.Term__c,
+   "WasteProgramType": payload.Waste_Program_Type__c default 1098,
+//whats this........ 
+ "Description": flowVars.product[0].Description,
+ "TaxCategory" : payload.Tax_Category_Code__c,
+   
+   "Price" : payload.Price__c default 1,
+"TerminateDate" : payload.End_Date__c,
+ "EnergyAndInsurance": payload.EI_Fee__c default 1,
+ "StopsPerYear":payload.Stops_Per_Year__c,
+ "ContainersPerWasteStreamPerYear":payload.Containers_Per_Waste_Stream_Per_Year__c,
+ "ContainersPerWasteStreamPerStop":payload.Containers_Per_Waste_Stream_Per_Stop__c,
+ "WeightPerWasteStreamPerYear":payload.Container_Weight_Per_Stream_Per_Year__c,
+ "WeightPerWasteStreamPerStop":payload.Container_Weight_Per_Stream_Per_Stop__c,
+
+ "OverageContainersPrice":payload.Overage_Price_Per_Container__c,
+ "OverageWeightPrice":payload.Price_of_Overage_of_Weight__c,
+ "OverageStopPrice":payload.Overage_Price_Per_Stop__c
+	
+}]]]></dw:set-payload>
+                    </dw:transform-message>
+                    <logger message="Update Request to Steriworks :  #[payload]" level="INFO" doc:name="Logger"/>
+                    <http:request config-ref="HTTP_Request_Configuration" path="AddSiteProgramSchedules" method="POST" doc:name=" HTTP Steriworks Add">
+                        <http:request-builder>
+                            <http:header headerName="Content-Type" value="application/json"/>
+                            <http:header headerName="X-SDS-Culture" value="en-US"/>
+                            <http:header headerName="X-SDS-User" value="rlourenco"/>
+                            <http:header headerName="X-SDS-CompanyCode" value="910"/>
+                            <http:header headerName="Accept" value="application/json"/>
+                        </http:request-builder>
+                    </http:request>
+                </otherwise>
+            </choice>
+
+            <set-variable variableName="SteriworksID" value="#[payload]" doc:name="Variable"/>
+            <logger message="Steriworks Response : #[payload]" level="INFO" doc:name="Logger"/>
+            <choice doc:name="Choice">
+                <when expression="#[message.inboundProperties['http.status'] == '201']">
+                    <logger message="Success" level="INFO" doc:name="Logger"/>
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+	Id: flowVars.orders[0].Id,
+	Setup_in_Steriworks__c	: true,
+	//Steriworks_ID__c:  "'" ++ payload[0].SiteProgramScheduleId ++ "'"
+	Steriworks_ID__c:  payload[0].SiteProgramScheduleId as :string
+	
+	}]]]></dw:set-payload>
+                    </dw:transform-message>
+                    <sfdc:update config-ref="Salesforce__Basic_Authentication" type="Subscription_Price__c" doc:name="Salesforce">
+                        <sfdc:objects ref="#[payload]"/>
+                    </sfdc:update>
+                    <logger level="INFO" doc:name="Logger"/>
+                    <set-variable variableName="csvOutput" value="#[flowVars.csvOutput],{&quot;status&quot;:&quot;success&quot;}" doc:name="Variable"/>
+                </when>
+                <otherwise>
+                    <logger message="Failed" level="INFO" doc:name="Logger"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="[#[flowVars.csvOutput]]" mimeType="application/json" doc:name="Set Payload"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/csv
+---
+payload - null]]></dw:set-payload>
+        </dw:transform-message>
+        <file:outbound-endpoint path="C:\\shri" outputPattern="recurringFee.csv" responseTimeout="10000" doc:name="File - Output file"/>
+
+ 
+    </flow>
+    <sub-flow name="SubFlowAccount">
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Dynamics_AX_Customer_Number__c,Id FROM Account WHERE Id = '#[payload.Customer_Account__c]'" doc:name="Salesforce"/>
+    </sub-flow>
+    <sub-flow name="recfeeProduct">
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Description,Name FROM Product2 where Id= '#[flowVars.orders[0].Product__c]'" doc:name="Salesforce"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </sub-flow>
+</mule>
