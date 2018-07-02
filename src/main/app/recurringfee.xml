@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:context="http://www.springframework.org/schema/context" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -11,22 +11,20 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
-http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
-http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
-   <sfdc:config name="Salesforce__Basic_Authentication" username="${salesforce-username}" password="${salesforce-password}" url="${salesforce-url}" doc:name="Salesforce: Basic Authentication" disableSessionInvalidation="true"/>
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+   <sfdc:config name="Salesforce__Basic_Authentication" username="${sdfc.id}" password="${sdfc.password}" url="${authorizationUrl}" doc:name="Salesforce: Basic Authentication" disableSessionInvalidation="true" securityToken="${security.token}"/>
     <http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="192.81.100.75" port="50705" basePath="V1" connectionIdleTimeout="1800000" doc:name="HTTP Request Configuration">
         <tls:context>
             <tls:trust-store insecure="true"/>
         </tls:context>
     </http:request-config>
-    <context:property-placeholder location="recurringfee-${env}.properties"/>
+    <file:connector name="File" autoDelete="true" streaming="true" validateConnections="true" doc:name="File"/>
     <flow name="recfeeFlow">
         <poll doc:name="Poll">
             <fixed-frequency-scheduler frequency="10" timeUnit="SECONDS"/>
             <logger level="INFO" doc:name="Logger"/>
         </poll>
-        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Container_Weight_Per_Stream_Per_Stop__c,Container_Weight_Per_Stream_Per_Year__c,Containers_Per_Waste_Stream_Per_Stop__c,Containers_Per_Waste_Stream_Per_Year__c,Contract_Status__c,Contract__c,CreatedById,CreatedDate,Customer_Account__c,EI_Fee__c,End_Date__c,Frequency_Type__c,Generator_Account__c,Id,IsRecurringFee__c,LastModifiedById,LastModifiedDate,LastReferencedDate,LastViewedDate,Last_Bill_Date__c,Monthly_Fee__c,Name,Next_Bill_Date__c,Number_of_Stops_Per_Year__c,OwnerId,Price__c,Product__c,Recurring_Fee__c,Send_to_SteriWorks__c,Setup_in_Steriworks__c,Start_Date__c,Steriworks_ID__c,Stops_per_Year__c,SystemModstamp,Tax_Category_Code__c,Term__c,Total_Containers__c,Total_Stops__c,Total_Weight__c,Verified__c,Waste_Program_Type__c FROM Subscription_Price__c WHERE (Send_to_SteriWorks__c = true AND id = 'aBg220000004CD8')" doc:name="Salesforce"/>
-        <set-variable variableName="csvOutput" value="null" doc:name="Variable -csvOutput"/>
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Active__c,Container_Weight_Per_Stream_Per_Stop__c,Container_Weight_Per_Stream_Per_Year__c,Containers_Per_Waste_Stream_Per_Stop__c,Containers_Per_Waste_Stream_Per_Year__c,Contract_Status__c,Contract__c,Customer_Account__c,EI_Fee__c,End_Date__c,Frequency_Type__c,Generator_Account__c,Id,IsRecurringFee__c,Last_Bill_Date__c,Name,Next_Bill_Date__c,Number_of_Stops_Per_Year__c,Overage_Price_Per_Stream_Per_Container__c,Overage_Price_Per_Stream_Per_Stop__c,Overage_Price_Per_Weight__c,Price__c,Product__c,Recurring_Fee__c,Send_to_SteriWorks__c,Setup_in_Steriworks__c,Start_Date__c,Steriworks_ID__c,Stops_per_Year__c,Tax_Category_Code__c,Term__c,Total_Containers__c,Total_Stops__c,Total_Weight__c,Verified__c,Waste_Program_Type__c FROM Subscription_Price__c WHERE Send_to_SteriWorks__c = true" doc:name="Salesforce"/>
         <set-payload value="#[org.apache.commons.collections.IteratorUtils.toList(payload)]" doc:name="Set Payload"/>
         <dw:transform-message doc:name="Transform Message">
             <dw:set-payload><![CDATA[%dw 1.0
@@ -52,33 +50,33 @@ payload]]></dw:set-variable>
 %output application/json
 ---
 [ {
-	
+	//updated with new feilds
 "contractId":payload.Contract__c,
 //"CustomerNumber": payload.Customer_Dynamics_AX_Number__c default '00106315',
 "CustomerNumber":'00106153',
 "ExternalSiteNumber": payload.Generator_Account__c,
 "EffectivePriceDate" :payload.Start_Date__c,
  
-  //its an ID  and for descrption use product description
+  
   "SvcCode": flowVars.product[0].Name,
 "BillAheadCycles" :payload.Term__c,
    "WasteProgramType": payload.Waste_Program_Type__c default 123,
-//whats this........ 
+
  "Description": flowVars.product[0].Description,
  "TaxCategory" : payload.Tax_Category_Code__c,
    
-   "Price" : payload.Price__c default 1,
+   "Price" : payload.Price__c,
 "TerminateDate" : payload.End_Date__c,
- "EnergyAndInsurance": payload.EI_Fee__c default 1,
- "StopsPerYear":payload.Stops_Per_Year__c,
+ "EnergyAndInsurance": payload.EI_Fee__c,
+ "StopsPerYear":payload.Stops_per_Year__c,
  "ContainersPerWasteStreamPerYear":payload.Containers_Per_Waste_Stream_Per_Year__c,
  "ContainersPerWasteStreamPerStop":payload.Containers_Per_Waste_Stream_Per_Stop__c,
  "WeightPerWasteStreamPerYear":payload.Container_Weight_Per_Stream_Per_Year__c,
  "WeightPerWasteStreamPerStop":payload.Container_Weight_Per_Stream_Per_Stop__c,
 
- "OverageContainersPrice":payload.Overage_Price_Per_Container__c,
- "OverageWeightPrice":payload.Price_of_Overage_of_Weight__c,
- "OverageStopPrice":payload.Overage_Price_Per_Stop__c
+ "OverageContainersPrice":payload.Overage_Price_Per_Stream_Per_Container__c,
+ "OverageWeightPrice":payload.Overage_Price_Per_Weight__c,
+ "OverageStopPrice":payload.Overage_Price_Per_Stream_Per_Stop__c
 	
 }]]]></dw:set-payload>
                     </dw:transform-message>
@@ -100,32 +98,33 @@ payload]]></dw:set-variable>
 ---
 [ {
 	
+	///updated with new feilds
 "contractId":payload.Contract__c,
 //"CustomerNumber": payload.Customer_Dynamics_AX_Number__c default '00106315',
 "CustomerNumber":'00106153',
 "ExternalSiteNumber": payload.Generator_Account__c,
 "EffectivePriceDate" :payload.Start_Date__c,
  
-  //its an ID  and for descrption use product description
+  
   "SvcCode": flowVars.product[0].Name,
 "BillAheadCycles" :payload.Term__c,
-   "WasteProgramType": payload.Waste_Program_Type__c default 1098,
-//whats this........ 
+   "WasteProgramType": payload.Waste_Program_Type__c default 123,
+
  "Description": flowVars.product[0].Description,
  "TaxCategory" : payload.Tax_Category_Code__c,
    
-   "Price" : payload.Price__c default 1,
+   "Price" : payload.Price__c,
 "TerminateDate" : payload.End_Date__c,
- "EnergyAndInsurance": payload.EI_Fee__c default 1,
- "StopsPerYear":payload.Stops_Per_Year__c,
+ "EnergyAndInsurance": payload.EI_Fee__c,
+ "StopsPerYear":payload.Stops_per_Year__c,
  "ContainersPerWasteStreamPerYear":payload.Containers_Per_Waste_Stream_Per_Year__c,
  "ContainersPerWasteStreamPerStop":payload.Containers_Per_Waste_Stream_Per_Stop__c,
  "WeightPerWasteStreamPerYear":payload.Container_Weight_Per_Stream_Per_Year__c,
  "WeightPerWasteStreamPerStop":payload.Container_Weight_Per_Stream_Per_Stop__c,
 
- "OverageContainersPrice":payload.Overage_Price_Per_Container__c,
- "OverageWeightPrice":payload.Price_of_Overage_of_Weight__c,
- "OverageStopPrice":payload.Overage_Price_Per_Stop__c
+ "OverageContainersPrice":payload.Overage_Price_Per_Stream_Per_Container__c,
+ "OverageWeightPrice":payload.Overage_Price_Per_Weight__c,
+ "OverageStopPrice":payload.Overage_Price_Per_Stream_Per_Stop__c
 	
 }]]]></dw:set-payload>
                     </dw:transform-message>
@@ -163,10 +162,11 @@ payload]]></dw:set-variable>
                         <sfdc:objects ref="#[payload]"/>
                     </sfdc:update>
                     <logger level="INFO" doc:name="Logger"/>
-                    <set-variable variableName="csvOutput" value="#[flowVars.csvOutput],{&quot;status&quot;:&quot;success&quot;}" doc:name="Variable"/>
+                    <set-variable variableName="csvOutput" value="#[flowVars.csvOutput]  , {&quot;status&quot;: &quot;success&quot;, &quot;orderId&quot;: #[flowVars.orders[0].Id]}" doc:name="Variable - csvOutput"/>
                 </when>
                 <otherwise>
                     <logger message="Failed" level="INFO" doc:name="Logger"/>
+                    <set-variable variableName="csvOutput" value="#[flowVars.csvOutput]  , {&quot;status&quot;: &quot;failure&quot;, &quot;orderId&quot;: #[flowVars.orders[0].Id]}" doc:name="Variable - csvOutput"/>
                 </otherwise>
             </choice>
         </foreach>
@@ -175,9 +175,9 @@ payload]]></dw:set-variable>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/csv
 ---
-payload - null]]></dw:set-payload>
+payload -- null]]></dw:set-payload>
         </dw:transform-message>
-        <file:outbound-endpoint path="${fileArchive}" outputPattern="recurringFee.csv" responseTimeout="10000" doc:name="File - Output file"/>
+        <file:outbound-endpoint path="${fileArchive}" outputPattern="recurringFee.csv" responseTimeout="10000" doc:name="File" connector-ref="File"/>
 
  
     </flow>
