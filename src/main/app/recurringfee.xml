@@ -25,7 +25,7 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
             <logger level="INFO" doc:name="Logger"/>
         </poll>
         <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:SELECT Active__c,Container_Weight_Per_Stream_Per_Stop__c,Container_Weight_Per_Stream_Per_Year__c,Containers_Per_Waste_Stream_Per_Stop__c,Containers_Per_Waste_Stream_Per_Year__c,Contract_Status__c,Contract__c,Customer_Account__c,EI_Fee__c,End_Date__c,Frequency_Type__c,Generator_Account__c,Id,IsRecurringFee__c,Last_Bill_Date__c,Name,Next_Bill_Date__c,Number_of_Stops_Per_Year__c,Overage_Price_Per_Stream_Per_Container__c,Overage_Price_Per_Stream_Per_Stop__c,Overage_Price_Per_Weight__c,Price__c,Product__c,Recurring_Fee__c,Send_to_SteriWorks__c,Setup_in_Steriworks__c,Start_Date__c,Steriworks_ID__c,Stops_per_Year__c,Tax_Category_Code__c,Term__c,Total_Containers__c,Total_Stops__c,Total_Weight__c,Verified__c,Waste_Program_Type__c FROM Subscription_Price__c WHERE Send_to_SteriWorks__c = true" doc:name="Salesforce"/>
-        <set-payload value="#[org.apache.commons.collections.IteratorUtils.toList(payload)]" doc:name="Set Payload"/>
+        <set-payload value="#[org.apache.commons.collections.IteratorUtils.toList(payload) ]" doc:name="Set Payload"/>
         <dw:transform-message doc:name="Transform Message">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
